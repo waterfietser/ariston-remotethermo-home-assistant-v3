@@ -70,6 +70,40 @@ To update test dependencies, edit `requirements_test.in` and regenerate the hash
 uv pip compile requirements_test.in --python 3.14.2 --python-version 3.14.2 --universal --generate-hashes --upgrade --output-file requirements_test.txt
 ```
 
+### Testing GALEVO resilience for issue #1
+
+The library changes are proposed in [python-ariston-api PR #199](https://github.com/fustom/python-ariston-api/pull/199).
+The resilience changes live in the companion [python-ariston-api](https://github.com/fustom/python-ariston-api)
+checkout at `.ariston-library`, on `fix/issue-1-galevo-resilience` based on
+tag `0.19.15`. Run
+`python -m unittest discover -s tests` from that checkout after installing its
+runtime dependencies. To test both changes together, use a disposable Linux
+Home Assistant test environment. Install the locked test dependencies, then
+point `PYTHONPATH` at the library checkout before running `python -m pytest`.
+Verify the source in use with `python -c "import ariston; print(ariston.__file__)"`.
+For a hardware check, run a separate Home Assistant Core instance with the
+same import override. Check that heating and hot water controls still work,
+that changes from the Ariston app appear on the next successful poll, and
+that availability returns after a transient cloud failure.
+
+The library still asks for every GALEVO property and all applicable menu items
+on each configured poll. It splits a failed property batch, with at most
+eight additional requests, four consecutive failures, or 15 seconds of
+recovery. A 429 immediately stops retries. Requests for the same account
+and API origin share the server's cooldown, or a fallback of 60 seconds
+that doubles up to 15 minutes.
+
+Home Assistant uses its existing coordinator to make entities unavailable
+when a refresh fails. The device retains its last accepted properties, menu
+items, and feature flags. Incomplete or provider-cached recovery results
+never replace that snapshot. A later complete refresh restores availability.
+
+For a release, first build and validate a new `ariston` package from the
+library branch. Once the package is available, update the integration
+manifest, `requirements.txt`, and the test lock to use that release, then run
+the integration suite before publishing the integration. A checkout using the
+current package pin still uses the published `ariston==0.19.15`.
+
 ## Installation
 [![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=fustom&repository=ariston-remotethermo-home-assistant-v3&category=integration) or copy ariston folder to your configuration/custom_components path.
 Use the add integration UI to set up your device.
