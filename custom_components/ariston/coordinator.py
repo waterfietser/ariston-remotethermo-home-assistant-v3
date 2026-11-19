@@ -6,10 +6,11 @@ from collections.abc import Callable
 from datetime import timedelta
 import logging
 
+from ariston.ariston_api import ConnectionException
 from ariston.base_device import AristonBaseDevice
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .const import DOMAIN
 
@@ -39,3 +40,12 @@ class DeviceDataUpdateCoordinator(DataUpdateCoordinator):
         )
 
         self.device = device
+
+    async def _async_update_data(self):
+        """Report cloud rate limiting as an expected update failure."""
+        try:
+            return await super()._async_update_data()
+        except ConnectionException as error:
+            if error.args[:1] != (429,):
+                raise
+            raise UpdateFailed("Ariston cloud rate limit (HTTP 429)") from error
