@@ -72,6 +72,7 @@ uv pip compile requirements_test.in --python 3.14.2 --python-version 3.14.2 --un
 
 ### Testing GALEVO resilience for issue #1
 
+The library changes are proposed in [python-ariston-api PR #199](https://github.com/fustom/python-ariston-api/pull/199).
 The resilience changes live in the companion [python-ariston-api](https://github.com/fustom/python-ariston-api)
 checkout at `.ariston-library`, on `fix/issue-1-galevo-resilience` based on
 tag `0.19.15`. Run
